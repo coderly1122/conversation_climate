@@ -46,4 +46,23 @@ button:disabled {
 
 .speaking {
     background: #2A9D8F !important;
+}.nav-bar {
+    margin: 20px 0;
+    padding: 10px;
+    background: #1E2A5E;
+    border-radius: 50px;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+.nav-bar a {
+    color: white;
+    text-decoration: none;
+    padding: 8px 20px;
+    border-radius: 30px;
+    transition: background 0.2s;
+}
+.nav-bar a:hover {
+    background: #2A9D8F;
 }
