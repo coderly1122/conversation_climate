@@ -1,9 +1,4 @@
-// ========== MEMBER A's CODE ==========
-// This code does:
-// 1. Requests microphone access
-// 2. Detects when user is speaking (VAD - Voice Activity Detection)
-// 3. Counts speaking time
-// 4. Lights up the meter when speaking
+
 
 let mediaStream = null;
 let audioContext = null;
