@@ -1,8 +1,4 @@
-// ============================================
-// VOICE ACTIVITY DETECTION (VAD)
-// Member A's task – improved version
-// Detects when user is speaking vs silent
-// ============================================
+
 
 class VoiceActivityDetector {
     constructor(options = {}) {

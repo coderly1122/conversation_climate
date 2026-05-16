@@ -1,22 +1,31 @@
-
-
-let mediaStream = null;
-let audioContext = null;
-let sourceNode = null;
-let isSpeaking = false;
-let speakingSeconds = 0;
-let intervalId = null;
-let isRecording = false;
+window.mediaStream = null;
+window.audioContext = null;
+window.sourceNode = null;
+window.isSpeaking = false;
+window.speakingSeconds = 0;
+window.intervalId = null;
+window.isRecording = false;
+window.interruptionCount = 0;
+window.lastSpeakingStart = 0;
+window.gracePeriod = false;
+window.graceTimer = null;
+window.sessionStartTime = null;
 
 // DOM elements
 const startBtn = document.getElementById('startBtn');
 const stopBtn = document.getElementById('stopBtn');
-const meter = document.getElementById('meter');
 const speakingTimeSpan = document.getElementById('speakingTime');
-const statusSpan = document.getElementById('status');
+const interruptionSpan = document.getElementById('interruptionCount');
+const volumeValueSpan = document.getElementById('volumeValue');
+const volumeFill = document.getElementById('volumeFill');
+const statusIconSpan = document.getElementById('statusIcon');
+const meter = document.getElementById('meter');
 
-// Simple Voice Activity Detection
-// Checks volume level – if loud enough, user is speaking
+function updateDisplay() {
+    if (speakingTimeSpan) speakingTimeSpan.innerText = window.speakingSeconds;
+    if (interruptionSpan) interruptionSpan.innerText = window.interruptionCount;
+}
+
 function checkVoiceActivity(analyser, dataArray) {
     analyser.getByteTimeDomainData(dataArray);
     
@@ -26,104 +35,139 @@ function checkVoiceActivity(analyser, dataArray) {
         maxSample = Math.max(maxSample, Math.abs(v));
     }
     
-    // Volume threshold (0.05 = quiet room, adjust if needed)
     const isCurrentlySpeaking = maxSample > 0.05;
+    const now = Date.now();
     
-    if (isCurrentlySpeaking && !isSpeaking && isRecording) {
-        // Just started speaking
-        isSpeaking = true;
-        meter.classList.add('speaking');
-        meter.innerHTML = '<span>🎤 SPEAKING</span>';
-        statusSpan.innerText = 'Speaking...';
-    } else if (!isCurrentlySpeaking && isSpeaking && isRecording) {
-        // Just stopped speaking
-        isSpeaking = false;
-        meter.classList.remove('speaking');
-        meter.innerHTML = '<span>🔴</span>';
-        statusSpan.innerText = 'Silence / Listening';
+    if (isCurrentlySpeaking && !window.isSpeaking && window.isRecording) {
+        const timeSinceLastStop = now - window.lastSpeakingStart;
+        if (window.lastSpeakingStart > 0 && timeSinceLastStop < 500 && !window.gracePeriod) {
+            window.interruptionCount++;
+            updateDisplay();
+            window.gracePeriod = true;
+            if (window.graceTimer) clearTimeout(window.graceTimer);
+            window.graceTimer = setTimeout(() => { window.gracePeriod = false; }, 1000);
+        }
+        window.isSpeaking = true;
+        if (meter) {
+            meter.classList.add('speaking');
+            meter.innerHTML = '<span>🎤</span>';
+        }
+        if (statusIconSpan) statusIconSpan.innerHTML = '🔊';
+    } else if (!isCurrentlySpeaking && window.isSpeaking && window.isRecording) {
+        window.isSpeaking = false;
+        window.lastSpeakingStart = now;
+        if (meter) {
+            meter.classList.remove('speaking');
+            meter.innerHTML = '<span>🔴</span>';
+        }
+        if (statusIconSpan) statusIconSpan.innerHTML = '⚪';
+    }
+    
+    // Volume calculation
+    let sum = 0;
+    for (let i = 0; i < dataArray.length; i++) {
+        const v = (dataArray[i] - 128) / 128;
+        sum += v * v;
+    }
+    const rms = Math.sqrt(sum / dataArray.length);
+    const volumePercent = Math.min(100, Math.floor(rms * 100 * 2));
+    
+    if (volumeValueSpan) volumeValueSpan.innerText = volumePercent;
+    if (volumeFill) volumeFill.style.width = volumePercent + '%';
+    
+    if (volumePercent > 60) {
+        if (volumeFill) volumeFill.style.background = '#E63946';
+    } else if (volumePercent > 30) {
+        if (volumeFill) volumeFill.style.background = '#E9C46A';
+    } else {
+        if (volumeFill) volumeFill.style.background = '#2A9D8F';
     }
     
     requestAnimationFrame(() => checkVoiceActivity(analyser, dataArray));
 }
 
-// Start the microphone and setup audio processing
 async function startMicrophone() {
+    if (window.isRecording) {
+        console.log('Already recording');
+        return;
+    }
+    
     try {
-        // Request microphone access
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaStream = stream;
+        window.mediaStream = stream;
         
-        // Create Audio Context
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        sourceNode = audioContext.createMediaStreamSource(stream);
+        window.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        window.sourceNode = window.audioContext.createMediaStreamSource(stream);
         
-        // Create analyser node for volume detection
-        const analyser = audioContext.createAnalyser();
+        const analyser = window.audioContext.createAnalyser();
         analyser.fftSize = 256;
-        const bufferLength = analyser.frequencyBinCount;
-        const dataArray = new Uint8Array(bufferLength);
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
         
-        // Connect: source -> analyser (we don't send to destination to avoid echo)
-        sourceNode.connect(analyser);
+        window.sourceNode.connect(analyser);
+        await window.audioContext.resume();
         
-        // Start audio context (requires user interaction)
-        await audioContext.resume();
+        window.isRecording = true;
+        window.speakingSeconds = 0;
+        window.interruptionCount = 0;
+        window.lastSpeakingStart = 0;
+        window.sessionStartTime = Date.now();
+        updateDisplay();
         
-        // Start voice activity detection
-        checkVoiceActivity(analyser, dataArray);
-        
-        // Start counting speaking time every second
-        if (intervalId) clearInterval(intervalId);
-        intervalId = setInterval(() => {
-            if (isRecording && isSpeaking) {
-                speakingSeconds++;
-                speakingTimeSpan.innerText = speakingSeconds;
+        if (window.intervalId) clearInterval(window.intervalId);
+        window.intervalId = setInterval(() => {
+            if (window.isRecording && window.isSpeaking) {
+                window.speakingSeconds++;
+                updateDisplay();
             }
         }, 1000);
         
-        isRecording = true;
-        statusSpan.innerText = 'Recording – microphone active';
-        startBtn.disabled = true;
-        stopBtn.disabled = false;
+        checkVoiceActivity(analyser, dataArray);
+        
+        if (startBtn) startBtn.disabled = true;
+        if (stopBtn) stopBtn.disabled = false;
+        if (statusIconSpan) statusIconSpan.innerHTML = '🎙️';
         
         console.log('✅ Microphone active');
-        
     } catch (error) {
         console.error('Error accessing microphone:', error);
-        statusSpan.innerText = 'Error: ' + (error.message || 'Microphone permission denied');
-        alert('Could not access microphone. Please allow microphone permissions and reload.');
+        alert('Could not access microphone. Please allow permissions and refresh.');
     }
 }
 
-// Stop everything
 function stopMicrophone() {
-    isRecording = false;
-    isSpeaking = false;
+    window.isRecording = false;
+    window.isSpeaking = false;
     
-    if (intervalId) {
-        clearInterval(intervalId);
-        intervalId = null;
+    if (window.intervalId) {
+        clearInterval(window.intervalId);
+        window.intervalId = null;
     }
     
-    if (mediaStream) {
-        mediaStream.getTracks().forEach(track => track.stop());
-        mediaStream = null;
+    if (window.mediaStream) {
+        window.mediaStream.getTracks().forEach(track => track.stop());
+        window.mediaStream = null;
     }
     
-    if (audioContext) {
-        audioContext.close();
-        audioContext = null;
+    if (window.audioContext) {
+        window.audioContext.close();
+        window.audioContext = null;
     }
     
-    meter.classList.remove('speaking');
-    meter.innerHTML = '<span>⏹️</span>';
-    statusSpan.innerText = 'Stopped';
-    startBtn.disabled = false;
-    stopBtn.disabled = true;
+    if (window.graceTimer) clearTimeout(window.graceTimer);
     
-    console.log('✅ Stopped. Speaking time:', speakingSeconds, 'seconds');
+    if (meter) {
+        meter.classList.remove('speaking');
+        meter.innerHTML = '<span>⏹️</span>';
+    }
+    if (startBtn) startBtn.disabled = false;
+    if (stopBtn) stopBtn.disabled = true;
+    if (statusIconSpan) statusIconSpan.innerHTML = '⏹️';
+    
+    console.log(`✅ Stopped. Speaking: ${window.speakingSeconds}s, Interruptions: ${window.interruptionCount}`);
 }
 
-// Button event listeners
-startBtn.addEventListener('click', startMicrophone);
-stopBtn.addEventListener('click', stopMicrophone);
+// Event listeners
+if (startBtn) startBtn.addEventListener('click', startMicrophone);
+if (stopBtn) stopBtn.addEventListener('click', stopMicrophone);
+
+console.log('Voice Analyzer ready. Click Start Microphone button.');
