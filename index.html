@@ -3,302 +3,166 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Conservation Climate</title>
-    <link rel ="stylesheet" href="landing-style.css">
-      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"/>
-      
+    <title>Conversation Climate</title>
+    <link rel="stylesheet" href="landing-style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 </head>
 <body>
-     
- <!-- MIDDLE: Links -->
 
- <ul class="nav-links">
-<li><a href="#how">How it works</a></li>
- <li><a href="#features">Features</a></li>
-<li><a href="#who">Who its for</a></li>
-</ul>
- <!-- RIGHT: Buttons -->
-  <div class="nav-right">
-  <button class="btn-outline">Log in</button>
-  <button class="btn-primary">Get Started</button>
-  </div>
+<nav class="navbar">
+    <a href="index.html" class="brand">
+        <div class="logo-box">🌡</div>
+        Conversation Climate
+    </a>
+    <ul class="nav-links">
+        <li><a href="#how">How it works</a></li>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#who">Who it's for</a></li>
+    </ul>
+    <div class="nav-right">
+        <button class="btn-outline">Log in</button>
+        <button class="btn-primary">Get Started</button>
+    </div>
 </nav>
+
 <!-- HERO SECTION -->
- <section class="hero">
- <div class="hero-content">
- <!-- Small trust badge -->
-  <div class="hero-trusted">
-     ✅ No recording · No cloud · No privacy worries
-  </div>
- <!-- Main heading -->
-  <h1>See the invisible
-  <span class="hero-highlights">Dynamics</span> of your meetings
-</h1>
- </div>
- 
- <!-- Description -->
- <p class="hero-sub">
-  Understand speaking balance, interruptions, and tone
-      without recording a single word.
+<section class="hero">
+    <div class="hero-content">
+        <div class="hero-trusted">
+            ✅ No recording · No cloud · No privacy worries
+        </div>
+        <h1>See the invisible
+            <span class="hero-highlights">Dynamics</span> of your meetings
+        </h1>
+    </div>
+    <p class="hero-sub">
+        Understand speaking balance, interruptions, and tone
+        without recording a single word.
     </p>
- <!-- Buttons -->
-  <div class="hero-btns">
-    
-
-
-<button class="btn-primary btn-lv" id="startSessionBtn">▶ Start the session</button>
-
-<button class="btn-outline btn-lv" onclick="window.location.href='#features'">See a sample report</button>
-  </div>
-<!-- badges -->
- <div class="hero-badges">
-<span class="badge">No recording</span>
-<span class="badge">No Cloud Storage</span>
-<span class="badge">No Transcript</span>
- </div>
- </div>
-<!-- Live Stats Section (Member A's VAD) -->
-<section class="section" id="live-stats">
-    <div class="sec-tag">Live Analysis</div>
-    <h2>Real-time Meeting Stats</h2>
-    
-    <!-- Start/Stop Buttons -->
-    <div style="margin: 20px 0;">
-        <button id="startBtn" style="background: #2A9D8F; color: white; padding: 12px 28px; border: none; border-radius: 60px; font-size: 16px; cursor: pointer;">🎤 Start Microphone</button>
-        <button id="stopBtn" disabled style="background: #ccc; color: white; padding: 12px 28px; border: none; border-radius: 60px; font-size: 16px; cursor: pointer;">⏹️ Stop</button>
+    <div class="hero-btns">
+        <button class="btn-primary btn-lv" onclick="window.location.href='analysis.html'">▶ Start the session</button>
+        <button class="btn-outline btn-lv" onclick="window.location.href='#features'">See a sample report</button>
     </div>
-    
-    <div class="live-stats-grid">
-        <div class="stat-card-live">
-            <div class="stat-value-live" id="speakingTime">0</div>
-            <div class="stat-label-live">Speaking (seconds)</div>
-        </div>
-        <div class="stat-card-live">
-            <div class="stat-value-live" id="interruptionCount">0</div>
-            <div class="stat-label-live">Interruptions</div>
-        </div>
-        <div class="stat-card-live">
-            <div class="stat-value-live" id="volumeValue">0</div>
-            <div class="stat-label-live">Volume (%)</div>
-        </div>
-        <div class="stat-card-live">
-            <div class="stat-value-live" id="statusIcon">⚪</div>
-            <div class="stat-label-live">Status</div>
-        </div>
-    </div>
-    
-    <div class="volume-bar-container">
-        <div class="volume-bar">
-            <div class="volume-fill" id="volumeFill"></div>
-        </div>
-    </div>
-    
-    <div class="meter-circle" id="meter">
-        <span>🔴</span>
+    <div class="hero-badges">
+        <span class="badge">No recording</span>
+        <span class="badge">No Cloud Storage</span>
+        <span class="badge">No Transcript</span>
     </div>
 </section>
-<!-- Interruption Analysis Log (Simulated) -->
-<div class="interruption-log-section" id="interruptionLog">
-    <h3>🔔 Interruption Analysis</h3>
-    <table class="interruption-log-table">
-        <thead>
-            <tr>
-                <th>Time</th>
-                <th>Interrupter</th>
-                <th>Interrupted</th>
-                <th>Signal Strength</th>
-            </tr>
-        </thead>
-        <tbody id="interruptionLogBody">
-            <tr>
-                <td colspan="4" style="text-align: center;">Start a session to see interruption analysis</td>
-            </tr>
-        </tbody>
-    </table>
-    <p style="font-size: 12px; color: #888; margin-top: 15px;">
-        💡 <strong>Note:</strong> Analysis is simulated based on volume patterns. 
-        In production with multiple microphones, we would identify exact speakers.
-    </p>
-</div>
-
 
 <!-- stat strip -->
 <div class="stat-strip">
-  <div class="stat-item">
-          <div class="stat-num">72%</div>
-          <div class="stat-abc">of employees find meetings unproductive</div>
-  </div>
-  <div class="stat-item">
-   <div class="stat-num">45%</div>
-    <div class="stat-abc">feel interrupted weekly — untracked</div>
+    <div class="stat-item">
+        <div class="stat-num">72%</div>
+        <div class="stat-abc">of employees find meetings unproductive</div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-num">45%</div>
+        <div class="stat-abc">feel interrupted weekly — untracked</div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-num">3 clicks</div>
+        <div class="stat-abc">to get your full climate report</div>
+    </div>
 </div>
-<div class="stat-item">
-  <div class="stat-num">3clicks </div>
-  <div class="stat-abc">to get your full climate report</div>
-</div>
-</div>
-  
-<!-- how its work -->
+
+<!-- how it works -->
 <section class="section" id="how">
-  <div class="sec-tags">How its works</div>
-  <h2>Three clicks For the report</h2>
-  <p class="section-sub">Simple, private, instant.</p>
-  <div class="steps-grid">
-    <div class="step-card">
-      <div class="step-num">01</div>
-      <div class="step-icon">🎙</div>
-      <h3>Start session</h3>
-      <p>Allow microphone. Audio never leaves your device.</p>
+    <div class="sec-tags">How it works</div>
+    <h2>Three clicks for the report</h2>
+    <p class="section-sub">Simple, private, instant.</p>
+    <div class="steps-grid">
+        <div class="step-card">
+            <div class="step-num">01</div>
+            <div class="step-icon">🎙</div>
+            <h3>Start session</h3>
+            <p>Allow microphone. Audio never leaves your device.</p>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="step-card">
+            <div class="step-num">02</div>
+            <div class="step-icon">💬</div>
+            <h3>Hold your meeting</h3>
+            <p>Tool runs silently in a background tab.</p>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="step-card">
+            <div class="step-num">03</div>
+            <div class="step-icon">📊</div>
+            <h3>Get your report</h3>
+            <p>Instant PDF — no cloud, no storage, no traces.</p>
+        </div>
     </div>
-    <div class="step-arrow">→</div>
-    <div class="step-card">
-      <div class="step-num">02</div>
-      <div class="step-icon">💬</div>
-      <h3>Hold your meeting</h3>
-      <p>Tool runs silently in a background tab.</p>
-    </div>
-    <div class="step-arrow">→</div>
-    <div class="step-card">
-      <div class="step-num">03</div>
-      <div class="step-icon">📊</div>
-      <h3>Get your report</h3>
-      <p>Instant PDF — no cloud, no storage, no traces.</p>
-    </div>
-  </div>
-  </section>
-<!-- ======= FEATURES ======= -->
-  <section class="section bg-gray" id="features">
+</section>
+
+<!-- FEATURES -->
+<section class="section bg-gray" id="features">
     <div class="sec-tag">What you get</div>
     <h2>Inside the report</h2>
     <p class="section-sub">No transcripts. No recordings. Just patterns.</p>
-
     <div class="features-grid">
-      <div class="card feat-card">
-        <div class="feat-icon">👤</div>
-        <h3>Speaking time %</h3>
-        <p>See if one person dominates or conversation is balanced.</p>
-      </div>
-      <div class="card feat-card">
-        <div class="feat-icon">⚡</div>
-        <h3>Interruptions</h3>
-        <p>Track how many times you interrupted — and were interrupted.</p>
-      </div>
-      <div class="card feat-card">
-        <div class="feat-icon">⏸</div>
-        <h3>Longest silence</h3>
-        <p>Detect awkward pauses with exact timestamps.</p>
-      </div>
-      <div class="card feat-card">
-        <div class="feat-icon">🌡</div>
-        <h3>Tone trend</h3>
-        <p>Watch tone shift — calm to tense and back — without words.</p>
-      </div>
+        <div class="card feat-card">
+            <div class="feat-icon">👤</div>
+            <h3>Speaking time %</h3>
+            <p>See if one person dominates or conversation is balanced.</p>
+        </div>
+        <div class="card feat-card">
+            <div class="feat-icon">⚡</div>
+            <h3>Interruptions</h3>
+            <p>Track how many times you interrupted — and were interrupted.</p>
+        </div>
+        <div class="card feat-card">
+            <div class="feat-icon">⏸</div>
+            <h3>Longest silence</h3>
+            <p>Detect awkward pauses with exact timestamps.</p>
+        </div>
+        <div class="card feat-card">
+            <div class="feat-icon">🌡</div>
+            <h3>Tone trend</h3>
+            <p>Watch tone shift — calm to tense and back — without words.</p>
+        </div>
     </div>
-  </section>
-
-  <!-- ======= WHO BENEFITS ======= -->
-  <section class="section" id="who">
-    <div class="sec-tag">Who benefits</div>
-    <h2>Built for everyone in a meeting</h2>
-
-    <div class="who-grid">
-      <div class="who-card">
-        <div class="who-icon">💼</div>
-        <h3>Manager</h3>
-        <p>See if someone is being silenced</p>
-      </div>
-      <div class="who-card">
-        <div class="who-icon">🏠</div>
-        <h3>Remote worker</h3>
-        <p>Reduce Zoom fatigue from bad dynamics</p>
-      </div>
-      <div class="who-card">
-        <div class="who-icon">🏫</div>
-        <h3>Teacher</h3>
-        <p>Track class participation fairly</p>
-      </div>
-      <div class="who-card">
-        <div class="who-icon">🛋</div>
-        <h3>Therapist</h3>
-        <p>Measure turn-taking in sessions</p>
-      </div>
-      <div class="who-card">
-        <div class="who-icon">🎤</div>
-        <h3>Freelancer</h3>
-        <p>Improve solo calls and podcasts</p>
-              </div>
-    </div>
-  </section>
-<!-- ======= CTA ======= -->
-  <section class="cta-section">
-    <h2>Ready to understand your meetings?</h2>
-    <p>Free to use. No sign-up. No cloud. Runs in your browser.</p>
-    <button class="btn-primary btn-lg" id="startCtaBtn">▶ Start your first session</button>
-  </section>
-  <script src="js/vad.js"></script>
-<script src="js/app.js"></script>
-<script>
-    // Scroll to live stats and start microphone
-    function startVoiceAnalyzer() {
-        document.getElementById('live-stats').scrollIntoView({ behavior: 'smooth' });
-        setTimeout(function() {
-            const startBtn = document.getElementById('startBtn');
-            if (startBtn) {
-                startBtn.click();
-            } else {
-                console.log('Start button not found');
-                alert('Please refresh the page and try again.');
-            }
-        }, 500);
-    }
-    
-    // Attach to buttons
-    const startSessionBtn = document.getElementById('startSessionBtn');
-    const startCtaBtn = document.getElementById('startCtaBtn');
-    
-    if (startSessionBtn) startSessionBtn.addEventListener('click', startVoiceAnalyzer);
-    if (startCtaBtn) startCtaBtn.addEventListener('click', startVoiceAnalyzer);
-</script>
-         
-
-
- 
-</body>
-</html>
-
 </section>
 
+<!-- WHO BENEFITS -->
+<section class="section" id="who">
+    <div class="sec-tag">Who benefits</div>
+    <h2>Built for everyone in a meeting</h2>
+    <div class="who-grid">
+        <div class="who-card">
+            <div class="who-icon">💼</div>
+            <h3>Manager</h3>
+            <p>See if someone is being silenced</p>
+        </div>
+        <div class="who-card">
+            <div class="who-icon">🏠</div>
+            <h3>Remote worker</h3>
+            <p>Reduce Zoom fatigue from bad dynamics</p>
+        </div>
+        <div class="who-card">
+            <div class="who-icon">🏫</div>
+            <h3>Teacher</h3>
+            <p>Track class participation fairly</p>
+        </div>
+        <div class="who-card">
+            <div class="who-icon">🛋</div>
+            <h3>Therapist</h3>
+            <p>Measure turn-taking in sessions</p>
+        </div>
+        <div class="who-card">
+            <div class="who-icon">🎤</div>
+            <h3>Freelancer</h3>
+            <p>Improve solo calls and podcasts</p>
+        </div>
+    </div>
+</section>
 
+<!-- CTA -->
+<section class="cta-section">
+    <h2>Ready to understand your meetings?</h2>
+    <p>Free to use. No sign-up. No cloud. Runs in your browser.</p>
+    <button class="btn-primary btn-lg" onclick="window.location.href='analysis.html'">▶ Start your first session</button>
+</section>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  </body>
+</body>
 </html>
