@@ -692,3 +692,74 @@ font-weight: 300;
     transition: width 0.05s;
     border-radius: 20px;
 }
+/* Interruption Log Styles */
+.interruption-log-section {
+    margin-top: 40px;
+    background: white;
+    border-radius: 24px;
+    padding: 25px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+}
+
+.interruption-log-section h3 {
+    color: #1E2A5E;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.interruption-log-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.interruption-log-table th,
+.interruption-log-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.interruption-log-table th {
+    background: #1E2A5E;
+    color: white;
+    font-weight: 600;
+}
+
+.interruption-log-table tr:hover {
+    background: #f0f4f8;
+}
+
+.signal-strong {
+    color: #2A9D8F;
+    font-weight: bold;
+}
+
+.signal-weak {
+    color: #E9C46A;
+    font-weight: bold;
+}
+
+.signal-medium {
+    color: #F4A261;
+    font-weight: bold;
+}
+
+.interruption-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.badge-interrupter {
+    background: #E63946;
+    color: white;
+}
+
+.badge-interrupted {
+    background: #1E2A5E;
+    color: white;
+}
