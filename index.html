@@ -48,7 +48,7 @@
 
 <button class="btn-primary btn-lv" id="startSessionBtn">▶ Start the session</button>
 
-<button id="stopBtn" class="btn-outline btn-lv">See a sample report</button>
+<button class="btn-outline btn-lv" onclick="window.location.href='#features'">See a sample report</button>
   </div>
 <!-- badges -->
  <div class="hero-badges">
@@ -97,6 +97,29 @@
         <span>🔴</span>
     </div>
 </section>
+<!-- Interruption Analysis Log (Simulated) -->
+<div class="interruption-log-section" id="interruptionLog">
+    <h3>🔔 Interruption Analysis</h3>
+    <table class="interruption-log-table">
+        <thead>
+            <tr>
+                <th>Time</th>
+                <th>Interrupter</th>
+                <th>Interrupted</th>
+                <th>Signal Strength</th>
+            </tr>
+        </thead>
+        <tbody id="interruptionLogBody">
+            <tr>
+                <td colspan="4" style="text-align: center;">Start a session to see interruption analysis</td>
+            </tr>
+        </tbody>
+    </table>
+    <p style="font-size: 12px; color: #888; margin-top: 15px;">
+        💡 <strong>Note:</strong> Analysis is simulated based on volume patterns. 
+        In production with multiple microphones, we would identify exact speakers.
+    </p>
+</div>
 
 
 <!-- stat strip -->
