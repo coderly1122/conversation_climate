@@ -9,11 +9,11 @@ window.intervalId = null;
 window.isRecording = false;
 window.interruptionCount = 0;
 window.sessionStartTime = null;
+window.interruptionCooldown = false;
 
 // For interruption log (simulated)
 let interruptionLog = [];
 let lastVolume = 0;
-let lastLogTime = 0;
 let speakerNames = ['Speaker 1', 'Speaker 2', 'Speaker 3', 'Speaker 4'];
 let currentSpeakerIndex = 0;
 
@@ -35,13 +35,13 @@ function updateDisplay() {
 
 function formatTime(seconds) {
     const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
+    const secs = Math.floor(seconds % 60);
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
-function addInterruptionToLog(interrupter, interrupted, strength, timestamp) {
+function addInterruptionToLog(interrupter, interrupted, strength) {
     const sessionSeconds = window.sessionStartTime ? (Date.now() - window.sessionStartTime) / 1000 : 0;
-    const timeStr = formatTime(Math.floor(sessionSeconds));
+    const timeStr = formatTime(sessionSeconds);
     
     interruptionLog.unshift({
         time: timeStr,
@@ -134,7 +134,7 @@ function checkVoiceActivity(analyser, dataArray) {
             else strength = 'weak';
             
             // Add to log
-            addInterruptionToLog(interrupter, interrupted, strength, Date.now());
+            addInterruptionToLog(interrupter, interrupted, strength);
             
             // Visual feedback
             const interruptionCard = document.getElementById('interruptionCount');
@@ -159,7 +159,7 @@ function checkVoiceActivity(analyser, dataArray) {
             window.interruptionCooldown = true;
             setTimeout(() => { window.interruptionCooldown = false; }, 1500);
             
-            console.log(`🔔 Simulated interruption: ${interrupter} interrupted ${interrupted} (${strength})`);
+            console.log(`🔔 Interruption: ${interrupter} interrupted ${interrupted} (${strength})`);
         }
     }
     
@@ -244,7 +244,7 @@ async function startMicrophone() {
         if (stopBtn) stopBtn.disabled = false;
         if (statusIconSpan) statusIconSpan.innerHTML = '🎙️';
         
-        console.log('✅ Microphone active - Simulated interruption analysis ready');
+        console.log('✅ Microphone active - Interruption analysis ready');
     } catch (error) {
         console.error('Error:', error);
         alert('Could not access microphone. Please allow permissions.');
@@ -281,7 +281,6 @@ function stopMicrophone() {
     if (volumeValueSpan) volumeValueSpan.innerText = '0';
     
     console.log(`✅ Stopped. Speaking: ${window.speakingSeconds}s, Interruptions: ${window.interruptionCount}`);
-    console.log('Interruption Log:', interruptionLog);
 }
 
 // Event listeners
