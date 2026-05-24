@@ -9,11 +9,11 @@ window.intervalId = null;
 window.isRecording = false;
 window.interruptionCount = 0;
 window.sessionStartTime = null;
+window.interruptionCooldown = false;
 
 // For interruption log (simulated)
 let interruptionLog = [];
 let lastVolume = 0;
-let lastLogTime = 0;
 let speakerNames = ['Speaker 1', 'Speaker 2', 'Speaker 3', 'Speaker 4'];
 let currentSpeakerIndex = 0;
 
@@ -35,13 +35,13 @@ function updateDisplay() {
 
 function formatTime(seconds) {
     const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
+    const secs = Math.floor(seconds % 60);
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
-function addInterruptionToLog(interrupter, interrupted, strength, timestamp) {
+function addInterruptionToLog(interrupter, interrupted, strength) {
     const sessionSeconds = window.sessionStartTime ? (Date.now() - window.sessionStartTime) / 1000 : 0;
-    const timeStr = formatTime(Math.floor(sessionSeconds));
+    const timeStr = formatTime(sessionSeconds);
     
     interruptionLog.unshift({
         time: timeStr,
@@ -134,7 +134,7 @@ function checkVoiceActivity(analyser, dataArray) {
             else strength = 'weak';
             
             // Add to log
-            addInterruptionToLog(interrupter, interrupted, strength, Date.now());
+            addInterruptionToLog(interrupter, interrupted, strength);
             
             // Visual feedback
             const interruptionCard = document.getElementById('interruptionCount');
@@ -159,7 +159,7 @@ function checkVoiceActivity(analyser, dataArray) {
             window.interruptionCooldown = true;
             setTimeout(() => { window.interruptionCooldown = false; }, 1500);
             
-            console.log(`🔔 Simulated interruption: ${interrupter} interrupted ${interrupted} (${strength})`);
+            console.log(`🔔 Interruption: ${interrupter} interrupted ${interrupted} (${strength})`);
         }
     }
     
@@ -196,8 +196,24 @@ function checkVoiceActivity(analyser, dataArray) {
     }
     
     requestAnimationFrame(() => checkVoiceActivity(analyser, dataArray));
-}
+    // Har second data save karo
+if(!window.toneArr) window.toneArr = [];
+if(!window.volArr) window.volArr = [];
+if(!window.lblArr) window.lblArr = [];
 
+if(window.isRecording && window.speakingSeconds > 0) {
+  const sec = window.speakingSeconds;
+  if(window.toneArr.length < sec) {
+    const t = volumePercent > 55 ? 3 
+            : volumePercent > 20 ? 2 
+            : volumePercent > 5  ? 1 : 0;
+    window.toneArr.push(t);
+    window.volArr.push(volumePercent);
+    window.lblArr.push(sec + 's');
+  }
+
+}
+}
 async function startMicrophone() {
     if (window.isRecording) {
         console.log('Already recording');
@@ -244,7 +260,7 @@ async function startMicrophone() {
         if (stopBtn) stopBtn.disabled = false;
         if (statusIconSpan) statusIconSpan.innerHTML = '🎙️';
         
-        console.log('✅ Microphone active - Simulated interruption analysis ready');
+        console.log('✅ Microphone active - Interruption analysis ready');
     } catch (error) {
         console.error('Error:', error);
         alert('Could not access microphone. Please allow permissions.');
@@ -281,11 +297,24 @@ function stopMicrophone() {
     if (volumeValueSpan) volumeValueSpan.innerText = '0';
     
     console.log(`✅ Stopped. Speaking: ${window.speakingSeconds}s, Interruptions: ${window.interruptionCount}`);
-    console.log('Interruption Log:', interruptionLog);
-}
+// Data save karo localStorage mein
+localStorage.setItem('toneData', 
+  JSON.stringify(window.toneArr || []));
+localStorage.setItem('volumeData', 
+  JSON.stringify(window.volArr || []));
+localStorage.setItem('timeLabels', 
+  JSON.stringify(window.lblArr || []));
+localStorage.setItem('speakingSec', window.speakingSeconds);
+localStorage.setItem('interruptions', window.interruptionCount);
+localStorage.setItem('interruptionLog', JSON.stringify(interruptionLog));
 
+
+// Report pe bhejo
+window.location.href = 'report.html';
+}
 // Event listeners
 if (startBtn) startBtn.addEventListener('click', startMicrophone);
 if (stopBtn) stopBtn.addEventListener('click', stopMicrophone);
 
-console.log('Voice Analyzer ready with simulated interruption analysis');
+console.log('Voice Analyzer ready. Click Start Microphone button.');
+

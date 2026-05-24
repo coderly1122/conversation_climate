@@ -1,70 +1,83 @@
-// TONE CHART 
-// Aaj ki date automatic
+// ========================
+// DATE
+// ========================
 const today = new Date();
-const options = { 
-  year: 'numeric', 
-  month: 'long', 
-  day: 'numeric' 
-};
-const dateString = today.toLocaleDateString('en-US', options);
-document.getElementById('reportDate').textContent = '📅 ' + dateString;
+const options = { year:'numeric', month:'long', day:'numeric' };
+document.getElementById('reportDate').textContent = 
+  '📅 ' + today.toLocaleDateString('en-US', options);
 
-// Tone data store karne ke liye
-let toneHistory = [];
-let volumeHistory = [];
-let timeLabels = [];
-let seconds = 0;
+// ========================
+// STATS LOAD KARO
+// ========================
+const speakSec = localStorage.getItem('speakingSec') || 0;
+const interrupts = localStorage.getItem('interruptions') || 0;
 
-// Har 5 second mein Zakia ka data lo
-setInterval(function() {
+document.getElementById('speakStat').textContent = speakSec;
+document.getElementById('intStat').textContent = interrupts;
 
-  // Zakia ke variables use kar rahi hoon
-  // jo tone_detection.js mein hain
-  const volume = currentVolume;    // Zakia ka variable
-  const speaking = isSpeaking;     // Zakia ka variable
-  const pitch = currentPitch;      // Zakia ka variable
+// ========================
+// INTERRUPTION TABLE
+// ========================
+const intLog = JSON.parse(
+  localStorage.getItem('interruptionLog') || '[]'
+);
 
-  // Tone calculate karo pitch se
-  // Low pitch = Calm
-  // High pitch = Tense
-  let toneValue = 1; // default calm
+const tbody = document.getElementById('intTableBody');
 
-  if (!speaking) {
-    toneValue = 0;        // silent
-  } else if (pitch > 250) {
-    toneValue = 3;        // tense — high pitch
-  } else if (pitch > 150) {
-    toneValue = 2;        // neutral
-  } else {
-    toneValue = 1;        // calm — low pitch
-  }
+if(intLog.length > 0) {
+  tbody.innerHTML = intLog.map(log => {
+    const strengthColor = 
+      log.strength === 'strong' ? '#1D9E75' :
+      log.strength === 'medium' ? '#BA7517' : '#E24B4A';
+    return `
+      <tr>
+        <td>${log.time}</td>
+        <td><span class="badge-red">${log.interrupter}</span></td>
+        <td><span class="badge-blue">${log.interrupted}</span></td>
+        <td style="color:${strengthColor};font-weight:500;">
+          ${log.strength}
+        </td>
+      </tr>
+    `;
+  }).join('');
+} else {
+  tbody.innerHTML = `
+    <tr>
+      <td colspan="4" style="text-align:center;color:#999;">
+        No interruptions recorded
+      </td>
+    </tr>
+  `;
+}
 
-  // Data arrays mein add karo
-  toneHistory.push(toneValue);
-  volumeHistory.push(volume);
-  timeLabels.push(seconds + 's');
+// ========================
+// CHARTS DATA
+// ========================
+const toneData = JSON.parse(
+  localStorage.getItem('toneData') || 'null'
+) || [1, 1, 2, 3, 2, 1];
 
-  seconds += 5;
+const volumeData = JSON.parse(
+  localStorage.getItem('volumeData') || 'null'
+) || [20, 40, 60, 80, 50, 30];
 
-  // Chart update karo
-  updateCharts();
+const timeLabels = JSON.parse(
+  localStorage.getItem('timeLabels') || 'null'
+) || ['0s','5s','10s','15s','20s','25s'];
 
-}, 5000); // har 5 second mein
-
-// ================================
-// TONE CHART BANAO
-// ================================
+// ========================
+// TONE CHART
+// ========================
 const toneCtx = document
   .getElementById('toneChart')
   .getContext('2d');
 
-const toneChart = new Chart(toneCtx, {
+new Chart(toneCtx, {
   type: 'line',
   data: {
     labels: timeLabels,
     datasets: [{
-      label: 'Tone',
-      data: toneHistory,
+      data: toneData,
       borderColor: '#1D9E75',
       backgroundColor: 'rgba(29,158,117,0.1)',
       borderWidth: 3,
@@ -76,82 +89,72 @@ const toneChart = new Chart(toneCtx, {
   },
   options: {
     responsive: true,
-    animation: false,    // smooth update
-    plugins: {
-      legend: { display: false }
-    },
+    plugins: { legend: { display: false } },
     scales: {
       y: {
-        min: 0,
-        max: 4,
+        min: 0, max: 4,
         ticks: {
           stepSize: 1,
           callback: function(value) {
-            if (value === 0) return '🔇 Silent';
-            if (value === 1) return '😊 Calm';
-            if (value === 2) return '😐 Neutral';
-            if (value === 3) return '😤 Tense';
+            if(value===0) return '🔇 Silent';
+            if(value===1) return '😊 Calm';
+            if(value===2) return '😐 Neutral';
+            if(value===3) return '😤 Tense';
             return '';
           }
         }
       },
-      x: {
-        grid: { display: false }
-      }
+      x: { grid: { display: false } }
     }
   }
 });
 
-// ================================
-// VOLUME CHART BANAO
-// ================================
+// ========================
+// VOLUME CHART
+// ========================
 const volumeCtx = document
   .getElementById('volumeChart')
   .getContext('2d');
 
-const volumeChart = new Chart(volumeCtx, {
+new Chart(volumeCtx, {
   type: 'bar',
   data: {
     labels: timeLabels,
     datasets: [{
-      label: 'Volume %',
-      data: volumeHistory,
+      data: volumeData,
       backgroundColor: '#1D9E75',
       borderRadius: 6,
     }]
   },
   options: {
     responsive: true,
-    animation: false,
-    plugins: {
-      legend: { display: false }
-    },
+    plugins: { legend: { display: false } },
     scales: {
       y: {
-        min: 0,
-        max: 100,
-        ticks: {
-          callback: value => value + '%'
-        }
+        min: 0, max: 100,
+        ticks: { callback: v => v + '%' }
       },
-      x: {
-        grid: { display: false }
-      }
+      x: { grid: { display: false } }
     }
   }
 });
+document.getElementById('pdfBtn')
+  .addEventListener('click', async () => {
 
-// ================================
-// CHARTS UPDATE FUNCTION
-// ================================
-function updateCharts() {
-  // Tone chart update
-  toneChart.data.labels = timeLabels;
-  toneChart.data.datasets[0].data = toneHistory;
-  toneChart.update();
+  // Page ka screenshot lo
+  const element = document.getElementById('report-main');
+  const canvas = await html2canvas(element);
+  const imgData = canvas.toDataURL('image/png');
 
-  // Volume chart update
-  volumeChart.data.labels = timeLabels;
-  volumeChart.data.datasets[0].data = volumeHistory;
-  volumeChart.update();
-}
+  // PDF banao
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF('p', 'mm', 'a4');
+
+  const imgWidth = 210;
+  const imgHeight = canvas.height * imgWidth / canvas.width;
+
+  pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+
+  // Download karo
+  pdf.save('meeting-report.pdf');
+});

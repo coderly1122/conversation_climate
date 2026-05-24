@@ -3,7 +3,7 @@
   padding: 0;
   box-sizing: border-box;
 }
-
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 :root {
   --teal:         #1D9E75;
   --teal-light:   #E1F5EE;
@@ -26,7 +26,10 @@ body{
   color: var(--text-main);
   background: var(--white);
   line-height: 1.6;
+  background-color: #E6F1FB;; /* ← yeh ek line */
+  font-family: 'Inter', sans-serif;
 }
+
 .brand{
   display: flex;
   align-items: center;
@@ -51,12 +54,14 @@ body{
   display: flex;
   gap: 28px;
   list-style: none;
+ 
 }
 
 .nav-links a {
-  text-decoration: none;
-  color:darkblue;
-  font-size: 15px;
+  font-size: 14px;
+  font-weight: 400;
+  color: #666;
+   text-decoration: none; 
 }
 .nav-right {
   display: flex;
@@ -96,6 +101,27 @@ body{
     position: sticky;
     text-decoration: none;
 }
+.nav-links a {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-muted);
+  position: relative;        /* ← Needed for positioning the line */
+}
+
+.nav-links a::after {
+  content: '';               /* ← Creates the line element */
+  position: absolute;
+  bottom: -4px;              /* ← Positions it 4px below the text */
+  left: 0;
+  width: 0;                  /* ← Starts invisible (width = 0) */
+  height: 2px;               /* ← Line thickness */
+  background: var(--teal);   /* ← Line color */
+  transition: width 0.3s ease; /* ← Animates the width */
+}
+
+.nav-links a:hover::after {
+  width: 100%;               /* ← On hover, line grows full width */
+}
 
 
 /* hero */
@@ -119,16 +145,24 @@ border-radius: 20px;
 margin-bottom: 26px;
 }
 h1 {
-  font-size: 45px;
-  font-weight: 700;
+  font-size: 38px;
+  font-weight: 600;
   color: #042C53;
   line-height: 1.2;
   margin-bottom: 16px;
 }
-
-.hero-highlight{
-  color: #1D9E75;
-  font-style: italic;
+h2 {
+  font-size: 26px;
+  font-weight: 600;
+  color: #111;
+  margin-bottom: 8px;
+}
+/* SAHI — yeh add karo */
+h3 {
+  font-size: 16px;
+  font-weight: 500;
+  color: #111;
+  margin-bottom: 4px;
 }
 
 .hero-sub {
@@ -215,6 +249,7 @@ display:grid;
   grid-template-columns: repeat(3, 1fr);
     border-top: var(--border);
   border-bottom: var(--border);
+   background-color: #ffffff;
  }
  .stat-item {
   text-align: center;
@@ -256,15 +291,15 @@ font-weight: 300;
 }
 
 .step-num {
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 42px;
+  font-weight: 500;
   color: var(--teal);
   margin-bottom: 12px;
   letter-spacing: 0.05em;
 }
 
 .step-icon {
-  font-size: 32px;
+  font-size: 12px;
   margin-bottom: 12px;
 }
 
@@ -300,12 +335,16 @@ font-weight: 300;
   margin: 0 auto;
   padding: 0;
 }
-
-.sec-tags
-{
-  font-weight: 800;
-  font-size: 60px;
-  color: darkblue;
+.sec-tags {
+  display: inline-block;
+  font-size: 25px;
+  font-weight: 600;
+  color: #085041;
+  background: #E1F5EE;
+  padding: 4px 14px;
+  border-radius: 20px;
+  margin-bottom: 10px;
+  text-align: center;
 }
 .card {
   background: var(--white);
@@ -491,7 +530,20 @@ font-weight: 300;
   color: var(--text-light);
   flex-shrink: 0;
 }
+.section {
+  text-align: center;
+}
 
+.section h2 {
+  font-size: 26px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.section p {
+  text-align: center;
+  color: #666;
+}
 /* FEATURES */
 .features-grid {
   display: grid;
@@ -526,6 +578,7 @@ font-weight: 300;
   border-radius: var(--radius-md);
   padding: 24px;
   text-align: center;
+  background-color: #ffffff;
 }
 
 .who-icon {
