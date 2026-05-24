@@ -196,8 +196,24 @@ function checkVoiceActivity(analyser, dataArray) {
     }
     
     requestAnimationFrame(() => checkVoiceActivity(analyser, dataArray));
-}
+    // Har second data save karo
+if(!window.toneArr) window.toneArr = [];
+if(!window.volArr) window.volArr = [];
+if(!window.lblArr) window.lblArr = [];
 
+if(window.isRecording && window.speakingSeconds > 0) {
+  const sec = window.speakingSeconds;
+  if(window.toneArr.length < sec) {
+    const t = volumePercent > 55 ? 3 
+            : volumePercent > 20 ? 2 
+            : volumePercent > 5  ? 1 : 0;
+    window.toneArr.push(t);
+    window.volArr.push(volumePercent);
+    window.lblArr.push(sec + 's');
+  }
+
+}
+}
 async function startMicrophone() {
     if (window.isRecording) {
         console.log('Already recording');
@@ -281,10 +297,24 @@ function stopMicrophone() {
     if (volumeValueSpan) volumeValueSpan.innerText = '0';
     
     console.log(`✅ Stopped. Speaking: ${window.speakingSeconds}s, Interruptions: ${window.interruptionCount}`);
-}
+// Data save karo localStorage mein
+localStorage.setItem('toneData', 
+  JSON.stringify(window.toneArr || []));
+localStorage.setItem('volumeData', 
+  JSON.stringify(window.volArr || []));
+localStorage.setItem('timeLabels', 
+  JSON.stringify(window.lblArr || []));
+localStorage.setItem('speakingSec', window.speakingSeconds);
+localStorage.setItem('interruptions', window.interruptionCount);
+localStorage.setItem('interruptionLog', JSON.stringify(interruptionLog));
 
+
+// Report pe bhejo
+window.location.href = 'report.html';
+}
 // Event listeners
 if (startBtn) startBtn.addEventListener('click', startMicrophone);
 if (stopBtn) stopBtn.addEventListener('click', stopMicrophone);
 
-console.log('Voice Analyzer ready with simulated interruption analysis');
+console.log('Voice Analyzer ready. Click Start Microphone button.');
+
