@@ -1,47 +1,265 @@
-// Member A - Voice Analyzer with Simulated Interruption Log
-
-window.mediaStream = null;
-window.audioContext = null;
-window.sourceNode = null;
-window.isSpeaking = false;
-window.speakingSeconds = 0;
-window.intervalId = null;
-window.isRecording = false;
-window.interruptionCount = 0;
-window.sessionStartTime = null;
-window.interruptionCooldown = false;
-
-// For interruption log (simulated)
-let interruptionLog = [];
+// CONVERSATION CLIMATE - FULL BACKEND INTEGRATION
+// Global variables
+let mediaStream = null;
+let audioContext = null;
+let analyser = null;
+let animationId = null;
+let isRecording = false;
+let isSpeaking = false;
+let speakingSeconds = 0;
+let intervalId = null;
+let interruptionCount = 0;
 let lastVolume = 0;
-let speakerNames = ['Speaker 1', 'Speaker 2', 'Speaker 3', 'Speaker 4'];
-let currentSpeakerIndex = 0;
+let interruptionCooldown = false;
+let toneHistory = [];
+let currentSessionData = null;
+let authToken = null;
+let currentUser = null;
 
-// DOM elements
+// DOM elements - Auth
+const authSection = document.getElementById('authSection');
+const authTitle = document.getElementById('authTitle');
+const authEmail = document.getElementById('authEmail');
+const authPassword = document.getElementById('authPassword');
+const signupName = document.getElementById('signupName');
+const nameGroup = document.getElementById('nameGroup');
+const authSubmitBtn = document.getElementById('authSubmitBtn');
+const switchAuth = document.getElementById('switchAuth');
+const userInfo = document.getElementById('userInfo');
+const userNameDisplay = document.getElementById('userNameDisplay');
+const logoutBtn = document.getElementById('logoutBtn');
+const analysisCard = document.getElementById('analysisCard');
+
+// DOM elements - Analysis
 const startBtn = document.getElementById('startBtn');
 const stopBtn = document.getElementById('stopBtn');
+const saveReportBtn = document.getElementById('saveReportBtn');
 const speakingTimeSpan = document.getElementById('speakingTime');
 const interruptionSpan = document.getElementById('interruptionCount');
 const volumeValueSpan = document.getElementById('volumeValue');
 const volumeFill = document.getElementById('volumeFill');
-const statusIconSpan = document.getElementById('statusIcon');
-const meter = document.getElementById('meter');
+const pitchValueSpan = document.getElementById('pitchValue');
+const statusText = document.getElementById('statusText');
+const liveDot = document.getElementById('liveDot');
+const liveLabel = document.getElementById('liveLabel');
 const interruptionLogBody = document.getElementById('interruptionLogBody');
+const toneTimeline = document.getElementById('toneTimeline');
 
-function updateDisplay() {
-    if (speakingTimeSpan) speakingTimeSpan.innerText = window.speakingSeconds;
-    if (interruptionSpan) interruptionSpan.innerText = window.interruptionCount;
+let isLoginMode = true;
+let interruptionLog = [];
+
+// ========== AUTH FUNCTIONS ==========
+function switchMode() {
+    isLoginMode = !isLoginMode;
+    if (isLoginMode) {
+        authTitle.innerText = 'Login';
+        authSubmitBtn.innerText = 'Login';
+        switchAuth.innerText = "Don't have an account? Sign up";
+        nameGroup.style.display = 'none';
+    } else {
+        authTitle.innerText = 'Sign Up';
+        authSubmitBtn.innerText = 'Sign Up';
+        switchAuth.innerText = 'Already have an account? Login';
+        nameGroup.style.display = 'block';
+    }
 }
 
-function formatTime(seconds) {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+async function handleAuth() {
+    const email = authEmail.value.trim();
+    const password = authPassword.value.trim();
+    
+    if (!email || !password) {
+        alert('Please enter email and password');
+        return;
+    }
+    
+    if (!isLoginMode) {
+        const name = signupName.value.trim();
+        if (!name) {
+            alert('Please enter your name');
+            return;
+        }
+    }
+    
+    const endpoint = isLoginMode ? '/api/auth/login' : '/api/auth/signup';
+    const body = isLoginMode 
+        ? { email, password }
+        : { name: signupName.value.trim(), email, password };
+    
+    try {
+        const response = await fetch(`http://localhost:3000${endpoint}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            alert(data.error || 'Authentication failed');
+            return;
+        }
+        
+        authToken = data.token;
+        currentUser = { id: data.userId, name: data.name };
+        
+        // Show user info and hide auth
+        authSection.style.display = 'none';
+        userInfo.style.display = 'flex';
+        analysisCard.style.display = 'block';
+        userNameDisplay.innerText = data.name;
+        
+        statusText.innerText = 'Logged in. Ready to start.';
+        
+    } catch (error) {
+        alert('Connection error: ' + error.message);
+    }
+}
+
+function logout() {
+    authToken = null;
+    currentUser = null;
+    isRecording = false;
+    if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+    }
+    if (audioContext) audioContext.close();
+    
+    authSection.style.display = 'block';
+    userInfo.style.display = 'none';
+    analysisCard.style.display = 'none';
+    authEmail.value = '';
+    authPassword.value = '';
+    if (signupName) signupName.value = '';
+    isLoginMode = true;
+    authTitle.innerText = 'Login';
+    authSubmitBtn.innerText = 'Login';
+    switchAuth.innerText = "Don't have an account? Sign up";
+    nameGroup.style.display = 'none';
+}
+
+// ========== SAVE REPORT TO BACKEND ==========
+async function saveReportToCloud() {
+    if (!authToken) {
+        alert('Please login first');
+        return;
+    }
+    
+    const sessionData = {
+        speakingTime: speakingSeconds,
+        interruptionCount: interruptionCount,
+        sessionDuration: speakingSeconds,
+        interruptionLog: interruptionLog.slice(0, 20)
+    };
+    
+    try {
+        const response = await fetch('http://localhost:3000/api/meetings/save', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify(sessionData)
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            alert(data.error || 'Failed to save report');
+            return;
+        }
+        
+        alert(`✅ Report saved successfully!\nSpeaking: ${speakingSeconds}s\nInterruptions: ${interruptionCount}`);
+        
+    } catch (error) {
+        alert('Error saving report: ' + error.message);
+    }
+}
+
+// ========== AUDIO ANALYSIS FUNCTIONS ==========
+function drawWaveform(dataArray) {
+    const canvas = document.getElementById('waveformCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const width = canvas.clientWidth;
+    const height = canvas.clientHeight;
+    canvas.width = width;
+    canvas.height = height;
+    
+    ctx.clearRect(0, 0, width, height);
+    ctx.beginPath();
+    ctx.strokeStyle = '#1D9E75';
+    ctx.lineWidth = 1.5;
+    
+    const sliceWidth = width / dataArray.length;
+    let x = 0;
+    for (let i = 0; i < dataArray.length; i++) {
+        const v = (dataArray[i] - 128) / 128;
+        const y = v * (height / 2) + (height / 2);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+        x += sliceWidth;
+    }
+    ctx.stroke();
+}
+
+function estimatePitch(dataArray, sampleRate) {
+    let maxCorr = 0, maxLag = 0;
+    for (let lag = 20; lag < 300; lag++) {
+        let corr = 0;
+        for (let i = 0; i < dataArray.length - lag; i++) {
+            const v1 = (dataArray[i] - 128) / 128;
+            const v2 = (dataArray[i + lag] - 128) / 128;
+            corr += v1 * v2;
+        }
+        if (corr > maxCorr) { maxCorr = corr; maxLag = lag; }
+    }
+    if (maxLag > 0 && maxCorr > 30) {
+        return Math.min(500, Math.max(80, Math.round(sampleRate / maxLag)));
+    }
+    return 0;
+}
+
+function updateTonePills(volume, pitch) {
+    const pillCalm = document.getElementById('pillCalm');
+    const pillNeutral = document.getElementById('pillNeutral');
+    const pillTense = document.getElementById('pillTense');
+    
+    pillCalm.classList.remove('calm');
+    pillNeutral.classList.remove('neutral');
+    pillTense.classList.remove('tense');
+    
+    let tone = 'neutral';
+    if (volume > 55 || pitch > 220) tone = 'tense';
+    else if (volume > 20 || pitch > 150) tone = 'neutral';
+    else if (volume > 5) tone = 'calm';
+    
+    if (tone === 'calm') pillCalm.classList.add('calm');
+    else if (tone === 'neutral') pillNeutral.classList.add('neutral');
+    else if (tone === 'tense') pillTense.classList.add('tense');
+    
+    // Update timeline
+    let toneValue = tone === 'calm' ? 1 : tone === 'neutral' ? 2 : tone === 'tense' ? 3 : 0;
+    toneHistory.push(toneValue);
+    if (toneHistory.length > 30) toneHistory.shift();
+    
+    const timeline = document.getElementById('toneTimeline');
+    if (timeline) {
+        timeline.innerHTML = '';
+        const colors = ['#ccc', '#1D9E75', '#185FA5', '#e63946'];
+        toneHistory.slice(-30).forEach(t => {
+            const bar = document.createElement('div');
+            bar.className = 'timeline-bar';
+            bar.style.height = (t === 1 ? 20 : t === 2 ? 35 : t === 3 ? 50 : 10) + 'px';
+            bar.style.backgroundColor = colors[t] || '#ccc';
+            timeline.appendChild(bar);
+        });
+    }
 }
 
 function addInterruptionToLog(interrupter, interrupted, strength) {
-    const sessionSeconds = window.sessionStartTime ? (Date.now() - window.sessionStartTime) / 1000 : 0;
-    const timeStr = formatTime(sessionSeconds);
+    const now = new Date();
+    const timeStr = `${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
     
     interruptionLog.unshift({
         time: timeStr,
@@ -50,57 +268,31 @@ function addInterruptionToLog(interrupter, interrupted, strength) {
         strength: strength
     });
     
-    // Keep only last 10 interruptions
     if (interruptionLog.length > 10) interruptionLog.pop();
     
-    updateInterruptionLogDisplay();
-}
-
-function updateInterruptionLogDisplay() {
-    if (!interruptionLogBody) return;
-    
-    if (interruptionLog.length === 0) {
-        interruptionLogBody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No interruptions detected yet</td></tr>';
-        return;
-    }
-    
-    interruptionLogBody.innerHTML = interruptionLog.map(log => {
-        let strengthClass = '';
-        let strengthText = '';
-        
-        switch(log.strength) {
-            case 'strong':
-                strengthClass = 'signal-strong';
-                strengthText = 'Strong 🔊';
-                break;
-            case 'medium':
-                strengthClass = 'signal-medium';
-                strengthText = 'Medium 📢';
-                break;
-            case 'weak':
-                strengthClass = 'signal-weak';
-                strengthText = 'Weak 🔉';
-                break;
-            default:
-                strengthClass = 'signal-medium';
-                strengthText = 'Medium';
+    if (interruptionLogBody) {
+        if (interruptionLog.length === 0) {
+            interruptionLogBody.innerHTML = '<tr><td colspan="4">No interruptions detected</td></tr>';
+        } else {
+            interruptionLogBody.innerHTML = interruptionLog.map(log => `
+                <tr>
+                    <td>${log.time}</td>
+                    <td><span style="background:#e63946;color:white;padding:2px 8px;border-radius:20px;">${log.interrupter}</span></td>
+                    <td><span style="background:#0f1c35;color:white;padding:2px 8px;border-radius:20px;">${log.interrupted}</span></td>
+                    <td style="color:${log.strength === 'strong' ? '#1D9E75' : log.strength === 'weak' ? '#d97706' : '#185FA5'}">${log.strength}</td>
+                </tr>
+            `).join('');
         }
-        
-        return `
-            <tr>
-                <td>${log.time}</td>
-                <td><span class="interruption-badge badge-interrupter">${log.interrupter}</span></td>
-                <td><span class="interruption-badge badge-interrupted">${log.interrupted}</span></td>
-                <td class="${strengthClass}">${strengthText}</td>
-            </tr>
-        `;
-    }).join('');
+    }
 }
 
-function checkVoiceActivity(analyser, dataArray) {
-    analyser.getByteTimeDomainData(dataArray);
+function processAudio() {
+    if (!isRecording || !analyser) return;
     
-    // Calculate volume
+    const dataArray = new Uint8Array(analyser.fftSize);
+    analyser.getByteTimeDomainData(dataArray);
+    drawWaveform(dataArray);
+    
     let sum = 0;
     for (let i = 0; i < dataArray.length; i++) {
         const v = (dataArray[i] - 128) / 128;
@@ -110,211 +302,120 @@ function checkVoiceActivity(analyser, dataArray) {
     const volumePercent = Math.min(100, Math.floor(rms * 100 * 2));
     const isCurrentlySpeaking = volumePercent > 3;
     
-    // INTERRUPTION DETECTION with simulated speaker identification
-    if (window.isRecording && window.isSpeaking && !window.interruptionCooldown) {
+    // Interruption detection
+    if (isRecording && isSpeaking && !interruptionCooldown) {
         const volumeJump = volumePercent - lastVolume;
-        
-        // Volume spike = potential interruption
         if (volumeJump > 12 && volumePercent > 15) {
-            window.interruptionCount++;
-            updateDisplay();
+            interruptionCount++;
+            if (interruptionSpan) interruptionSpan.innerText = interruptionCount;
             
-            // SIMULATED: Rotate through speakers to show who interrupted whom
-            currentSpeakerIndex = (currentSpeakerIndex + 1) % speakerNames.length;
-            const interrupter = speakerNames[currentSpeakerIndex];
-            
-            // Determine interrupted speaker (previous speaker in list)
-            const interruptedIndex = (currentSpeakerIndex - 1 + speakerNames.length) % speakerNames.length;
-            const interrupted = speakerNames[interruptedIndex];
-            
-            // Determine signal strength based on volume jump
-            let strength = 'medium';
-            if (volumeJump > 40) strength = 'strong';
-            else if (volumeJump > 25) strength = 'medium';
-            else strength = 'weak';
-            
-            // Add to log
+            const speakers = ['Speaker 1', 'Speaker 2', 'Speaker 3', 'Speaker 4'];
+            const interrupter = speakers[Math.floor(Math.random() * speakers.length)];
+            const interrupted = speakers[Math.floor(Math.random() * speakers.length)];
+            let strength = volumeJump > 40 ? 'strong' : volumeJump > 25 ? 'medium' : 'weak';
             addInterruptionToLog(interrupter, interrupted, strength);
             
-            // Visual feedback
-            const interruptionCard = document.getElementById('interruptionCount');
-            if (interruptionCard) {
-                interruptionCard.style.transition = 'all 0.2s';
-                interruptionCard.style.transform = 'scale(1.3)';
-                interruptionCard.style.color = '#E63946';
-                setTimeout(() => {
-                    interruptionCard.style.transform = 'scale(1)';
-                    interruptionCard.style.color = '#1E2A5E';
-                }, 300);
-            }
-            
-            if (meter) {
-                meter.style.backgroundColor = '#E63946';
-                setTimeout(() => {
-                    if (window.isSpeaking) meter.style.backgroundColor = '#2A9D8F';
-                    else meter.style.backgroundColor = '#e0e0e0';
-                }, 200);
-            }
-            
-            window.interruptionCooldown = true;
-            setTimeout(() => { window.interruptionCooldown = false; }, 1500);
-            
-            console.log(`🔔 Interruption: ${interrupter} interrupted ${interrupted} (${strength})`);
+            interruptionCooldown = true;
+            setTimeout(() => { interruptionCooldown = false; }, 1500);
         }
     }
     
     lastVolume = volumePercent;
     
-    // Speaking state management
-    if (isCurrentlySpeaking && !window.isSpeaking && window.isRecording) {
-        window.isSpeaking = true;
-        if (meter) {
-            meter.classList.add('speaking');
-            meter.innerHTML = '<span>🎤 SPEAKING</span>';
-        }
-        if (statusIconSpan) statusIconSpan.innerHTML = '🔊';
-        
-    } else if (!isCurrentlySpeaking && window.isSpeaking && window.isRecording) {
-        window.isSpeaking = false;
-        if (meter) {
-            meter.classList.remove('speaking');
-            meter.innerHTML = '<span>🔴 IDLE</span>';
-        }
-        if (statusIconSpan) statusIconSpan.innerHTML = '⚪';
+    // Speaking state
+    if (isCurrentlySpeaking && !isSpeaking && isRecording) {
+        isSpeaking = true;
+        if (liveDot) liveDot.classList.add('active');
+        if (liveLabel) liveLabel.innerText = 'Speaking';
+        if (statusText) statusText.innerText = '🔊 Speaking';
+    } else if (!isCurrentlySpeaking && isSpeaking && isRecording) {
+        isSpeaking = false;
+        if (liveDot) liveDot.classList.remove('active');
+        if (liveLabel) liveLabel.innerText = 'Listening';
+        if (statusText) statusText.innerText = '🎤 Listening';
     }
     
     // Update volume display
     if (volumeValueSpan) volumeValueSpan.innerText = volumePercent;
     if (volumeFill) volumeFill.style.width = volumePercent + '%';
     
-    if (volumePercent > 60) {
-        if (volumeFill) volumeFill.style.background = '#E63946';
-    } else if (volumePercent > 30) {
-        if (volumeFill) volumeFill.style.background = '#E9C46A';
-    } else {
-        if (volumeFill) volumeFill.style.background = '#2A9D8F';
-    }
+    // Update pitch
+    const sampleRate = audioContext ? audioContext.sampleRate : 44100;
+    const pitch = isCurrentlySpeaking ? estimatePitch(dataArray, sampleRate) : 0;
+    if (pitchValueSpan) pitchValueSpan.innerText = pitch > 0 ? pitch : '—';
     
-    requestAnimationFrame(() => checkVoiceActivity(analyser, dataArray));
-    // Har second data save karo
-if(!window.toneArr) window.toneArr = [];
-if(!window.volArr) window.volArr = [];
-if(!window.lblArr) window.lblArr = [];
-
-if(window.isRecording && window.speakingSeconds > 0) {
-  const sec = window.speakingSeconds;
-  if(window.toneArr.length < sec) {
-    const t = volumePercent > 55 ? 3 
-            : volumePercent > 20 ? 2 
-            : volumePercent > 5  ? 1 : 0;
-    window.toneArr.push(t);
-    window.volArr.push(volumePercent);
-    window.lblArr.push(sec + 's');
-  }
-
+    updateTonePills(volumePercent, pitch);
+    requestAnimationFrame(processAudio);
 }
-}
+
 async function startMicrophone() {
-    if (window.isRecording) {
-        console.log('Already recording');
-        return;
-    }
+    if (isRecording) return;
     
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        window.mediaStream = stream;
+        mediaStream = stream;
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioContext.createMediaStreamSource(stream);
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 2048;
+        source.connect(analyser);
+        await audioContext.resume();
         
-        window.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        window.sourceNode = window.audioContext.createMediaStreamSource(stream);
-        
-        const analyser = window.audioContext.createAnalyser();
-        analyser.fftSize = 256;
-        const dataArray = new Uint8Array(analyser.frequencyBinCount);
-        
-        window.sourceNode.connect(analyser);
-        await window.audioContext.resume();
-        
-        // Reset all
-        window.isRecording = true;
-        window.speakingSeconds = 0;
-        window.interruptionCount = 0;
-        window.sessionStartTime = Date.now();
-        lastVolume = 0;
-        window.interruptionCooldown = false;
+        isRecording = true;
+        isSpeaking = false;
+        speakingSeconds = 0;
+        interruptionCount = 0;
         interruptionLog = [];
-        currentSpeakerIndex = 0;
-        updateDisplay();
-        updateInterruptionLogDisplay();
+        toneHistory = [];
+        lastVolume = 0;
         
-        if (window.intervalId) clearInterval(window.intervalId);
-        window.intervalId = setInterval(() => {
-            if (window.isRecording && window.isSpeaking) {
-                window.speakingSeconds++;
-                updateDisplay();
+        if (speakingTimeSpan) speakingTimeSpan.innerText = '0';
+        if (interruptionSpan) interruptionSpan.innerText = '0';
+        if (interruptionLogBody) interruptionLogBody.innerHTML = '<tr><td colspan="4">No interruptions detected</td></tr>';
+        
+        if (intervalId) clearInterval(intervalId);
+        intervalId = setInterval(() => {
+            if (isRecording && isSpeaking) {
+                speakingSeconds++;
+                if (speakingTimeSpan) speakingTimeSpan.innerText = speakingSeconds;
             }
         }, 1000);
         
-        checkVoiceActivity(analyser, dataArray);
+        processAudio();
         
-        if (startBtn) startBtn.disabled = true;
-        if (stopBtn) stopBtn.disabled = false;
-        if (statusIconSpan) statusIconSpan.innerHTML = '🎙️';
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+        saveReportBtn.disabled = false;
+        if (liveDot) liveDot.classList.add('active');
+        if (liveLabel) liveLabel.innerText = 'Recording';
+        if (statusText) statusText.innerText = '🎙️ Recording...';
         
-        console.log('✅ Microphone active - Interruption analysis ready');
     } catch (error) {
-        console.error('Error:', error);
-        alert('Could not access microphone. Please allow permissions.');
+        alert('Microphone error: ' + error.message);
     }
 }
 
 function stopMicrophone() {
-    window.isRecording = false;
-    window.isSpeaking = false;
+    isRecording = false;
+    isSpeaking = false;
     
-    if (window.intervalId) {
-        clearInterval(window.intervalId);
-        window.intervalId = null;
-    }
+    if (intervalId) { clearInterval(intervalId); intervalId = null; }
+    if (mediaStream) { mediaStream.getTracks().forEach(track => track.stop()); mediaStream = null; }
+    if (audioContext) { audioContext.close(); audioContext = null; }
     
-    if (window.mediaStream) {
-        window.mediaStream.getTracks().forEach(track => track.stop());
-        window.mediaStream = null;
-    }
-    
-    if (window.audioContext) {
-        window.audioContext.close();
-        window.audioContext = null;
-    }
-    
-    if (meter) {
-        meter.classList.remove('speaking');
-        meter.innerHTML = '<span>⏹️</span>';
-    }
-    if (startBtn) startBtn.disabled = false;
-    if (stopBtn) stopBtn.disabled = true;
-    if (statusIconSpan) statusIconSpan.innerHTML = '⏹️';
-    if (volumeFill) volumeFill.style.width = '0%';
-    if (volumeValueSpan) volumeValueSpan.innerText = '0';
-    
-    console.log(`✅ Stopped. Speaking: ${window.speakingSeconds}s, Interruptions: ${window.interruptionCount}`);
-// Data save karo localStorage mein
-localStorage.setItem('toneData', 
-  JSON.stringify(window.toneArr || []));
-localStorage.setItem('volumeData', 
-  JSON.stringify(window.volArr || []));
-localStorage.setItem('timeLabels', 
-  JSON.stringify(window.lblArr || []));
-localStorage.setItem('speakingSec', window.speakingSeconds);
-localStorage.setItem('interruptions', window.interruptionCount);
-localStorage.setItem('interruptionLog', JSON.stringify(interruptionLog));
-
-
-// Report pe bhejo
-window.location.href = 'report.html';
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+    if (liveDot) liveDot.classList.remove('active');
+    if (liveLabel) liveLabel.innerText = 'Offline';
+    if (statusText) statusText.innerText = 'Stopped. Click Save to store report.';
 }
-// Event listeners
-if (startBtn) startBtn.addEventListener('click', startMicrophone);
-if (stopBtn) stopBtn.addEventListener('click', stopMicrophone);
 
-console.log('Voice Analyzer ready. Click Start Microphone button.');
+// ========== EVENT LISTENERS ==========
+switchAuth.addEventListener('click', switchMode);
+authSubmitBtn.addEventListener('click', handleAuth);
+logoutBtn.addEventListener('click', logout);
+startBtn.addEventListener('click', startMicrophone);
+stopBtn.addEventListener('click', stopMicrophone);
+saveReportBtn.addEventListener('click', saveReportToCloud);
 
+console.log('App loaded. Waiting for login.');
