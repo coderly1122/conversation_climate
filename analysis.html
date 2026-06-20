@@ -57,7 +57,6 @@
         .live-dot.active { background: #1D9E75; animation: pulse 1s infinite; }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
         .status-row { margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee; color: #666; }
-        pre { background: #f5f5f5; padding: 10px; border-radius: 8px; overflow-x: auto; font-size: 12px; margin-top: 10px; max-height: 150px; overflow-y: auto; }
     </style>
 </head>
 <body>
@@ -118,14 +117,12 @@
             <div class="volume-track"><div class="volume-fill" id="volumeFill"></div></div>
 
             <div class="status-row">Status: <span id="statusText">Awaiting input</span></div>
-            
-            <pre id="debugLog">Ready. Login to start.</pre>
         </div>
     </div>
 
     <script>
         // ============================================
-        // WORKING VERSION - CONNECTS TO BACKEND WITH PDF
+        // CONVERSATION CLIMATE - WORKING VERSION
         // ============================================
         
         const BACKEND_URL = 'http://localhost:3000';
@@ -171,13 +168,7 @@
         const statusText = document.getElementById('statusText');
         const liveDot = document.getElementById('liveDot');
         const liveLabel = document.getElementById('liveLabel');
-        const debugLog = document.getElementById('debugLog');
-        
-        function log(msg) {
-            if (debugLog) debugLog.innerText = msg + '\n' + debugLog.innerText.slice(0, 500);
-            console.log(msg);
-        }
-        
+
         // ========== PDF DOWNLOAD FUNCTION ==========
         async function downloadPDF() {
             if (!authToken) {
@@ -189,21 +180,17 @@
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
                 
-                // Title
                 doc.setFontSize(22);
                 doc.setTextColor(30, 42, 94);
                 doc.text("Conversation Climate - Meeting Report", 20, 20);
                 
-                // Date
                 doc.setFontSize(10);
                 doc.setTextColor(100, 100, 100);
                 doc.text(`Generated: ${new Date().toLocaleString()}`, 20, 30);
                 doc.text(`User: ${currentUser?.name || 'Guest'}`, 20, 37);
                 
-                // Divider
                 doc.line(20, 42, 190, 42);
                 
-                // Session Stats
                 doc.setFontSize(14);
                 doc.setTextColor(30, 42, 94);
                 doc.text("Session Statistics", 20, 55);
@@ -214,26 +201,20 @@
                 doc.text(`Interruptions Detected: ${interruptionCount}`, 20, 78);
                 doc.text(`Session Status: Completed`, 20, 88);
                 
-                // Divider
                 doc.line(20, 95, 190, 95);
                 
-                // Footer
                 doc.setFontSize(9);
                 doc.setTextColor(150, 150, 150);
                 doc.text("Conversation Climate - Privacy First, No Cloud Storage", 20, 280);
                 doc.text(`Report ID: ${Date.now()}`, 20, 270);
                 
-                // Save PDF
                 doc.save(`meeting_report_${Date.now()}.pdf`);
-                
                 alert('✅ PDF downloaded!');
-                log('PDF downloaded successfully');
             } catch (error) {
-                log(`❌ PDF error: ${error.message}`);
                 alert('Error generating PDF: ' + error.message);
             }
         }
-        
+
         // ========== AUTH FUNCTIONS ==========
         function switchMode() {
             isLoginMode = !isLoginMode;
@@ -249,7 +230,7 @@
                 nameGroup.style.display = 'block';
             }
         }
-        
+
         async function handleAuth() {
             const email = authEmail.value.trim();
             const password = authPassword.value.trim();
@@ -272,8 +253,6 @@
                 ? { email, password }
                 : { name: signupName.value.trim(), email, password };
             
-            log(`Sending ${endpoint} request...`);
-            
             try {
                 const response = await fetch(`${BACKEND_URL}${endpoint}`, {
                     method: 'POST',
@@ -282,7 +261,6 @@
                 });
                 
                 const data = await response.json();
-                log(`Response: ${JSON.stringify(data, null, 2)}`);
                 
                 if (!response.ok) {
                     alert(data.error || 'Authentication failed');
@@ -297,14 +275,12 @@
                 analysisCard.style.display = 'block';
                 userNameDisplay.innerText = data.name;
                 statusText.innerText = 'Logged in. Ready to start.';
-                log('✅ Login successful!');
                 
             } catch (error) {
-                log(`❌ Error: ${error.message}`);
                 alert('Connection error: ' + error.message + '\nMake sure backend is running on port 3000');
             }
         }
-        
+
         function logout() {
             authToken = null;
             currentUser = null;
@@ -315,9 +291,8 @@
             authEmail.value = '';
             authPassword.value = '';
             if (signupName) signupName.value = '';
-            log('Logged out');
         }
-        
+
         // ========== SAVE REPORT ==========
         async function saveReport() {
             if (!authToken) {
@@ -332,8 +307,6 @@
                 interruptionLog: []
             };
             
-            log('Saving report...');
-            
             try {
                 const response = await fetch(`${BACKEND_URL}/api/meetings/save`, {
                     method: 'POST',
@@ -345,7 +318,6 @@
                 });
                 
                 const data = await response.json();
-                log(`Save response: ${JSON.stringify(data, null, 2)}`);
                 
                 if (response.ok) {
                     alert(`✅ Report saved to Cloud!\nSpeaking: ${speakingSeconds}s\nInterruptions: ${interruptionCount}`);
@@ -353,11 +325,10 @@
                     alert('Error: ' + (data.error || 'Failed to save'));
                 }
             } catch (error) {
-                log(`❌ Save error: ${error.message}`);
                 alert('Error saving report: ' + error.message);
             }
         }
-        
+
         // ========== AUDIO FUNCTIONS ==========
         function calculateVolume(dataArray) {
             let sum = 0;
@@ -368,7 +339,7 @@
             const rms = Math.sqrt(sum / dataArray.length);
             return Math.min(100, Math.floor(rms * 100 * 2));
         }
-        
+
         function processAudio() {
             if (!isRecording || !analyser) return;
             
@@ -397,7 +368,6 @@
                 if (volumeJump > 15 && volume > 20) {
                     interruptionCount++;
                     interruptionSpan.innerText = interruptionCount;
-                    log(`🔔 Interruption detected! Count: ${interruptionCount}`);
                 }
             }
             lastVolume = volume;
@@ -408,7 +378,7 @@
             
             requestAnimationFrame(processAudio);
         }
-        
+
         async function startMicrophone() {
             if (isRecording) return;
             
@@ -448,14 +418,12 @@
                 liveDot.classList.add('active');
                 liveLabel.innerText = 'Recording';
                 statusText.innerText = '🎙️ Recording...';
-                log('✅ Microphone started');
                 
             } catch (error) {
-                log(`❌ Microphone error: ${error.message}`);
                 alert('Microphone error: ' + error.message);
             }
         }
-        
+
         function stopMicrophone() {
             isRecording = false;
             isSpeaking = false;
@@ -470,9 +438,8 @@
             liveDot.classList.remove('active');
             liveLabel.innerText = 'Offline';
             statusText.innerText = `Stopped. ${speakingSeconds}s, ${interruptionCount} interruptions`;
-            log('✅ Microphone stopped');
         }
-        
+
         // ========== EVENT LISTENERS ==========
         switchAuth.addEventListener('click', switchMode);
         authSubmitBtn.addEventListener('click', handleAuth);
@@ -481,8 +448,8 @@
         stopBtn.addEventListener('click', stopMicrophone);
         saveReportBtn.addEventListener('click', saveReport);
         if (downloadPdfBtn) downloadPdfBtn.addEventListener('click', downloadPDF);
-        
-        log('App loaded. Ready to login.');
+
+        console.log('App loaded. Ready to login.');
     </script>
 </body>
 </html>
