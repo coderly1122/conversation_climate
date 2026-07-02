@@ -24,7 +24,7 @@ A full-stack web application that analyzes meeting dynamics in real-time. Detect
 | Frontend | HTML5, CSS3, JavaScript (vanilla) |
 | Backend | Node.js, Express.js |
 | Database | MongoDB (local) |
-| Authentication | JWT, bcryptjs |
+| Authentication | JWT, bycript js |
 | Audio Processing | Web Audio API |
 | PDF Generation | jsPDF |
 | API Testing | Postman |
@@ -121,7 +121,3 @@ Once both are running, you should see:
 - **Environment Variables**: Make sure `.env` is properly configured before starting the server.
 
 ---
-
-## License
-
-ISC

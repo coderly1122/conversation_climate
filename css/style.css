@@ -157,3 +157,43 @@ button:disabled {
 .nav-bar a:hover {
     background: #2A9D8F;
 }
+.mic-setup {
+    background: white;
+    border-radius: 28px;
+    padding: 32px;
+    margin-bottom: 30px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+}
+.mic-setup h3 {
+    font-size: 20px;
+    color: #1E2A5E;
+    margin-bottom: 20px;
+}
+.mic-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    background: #f5f7fa;
+    border-radius: 8px;
+}
+.mic-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+.mic-item label {
+    font-size: 14px;
+    cursor: pointer;
+}
+#startMicsBtn {
+    background: linear-gradient(135deg, #1D9E75, #0e6e52);
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 40px;
+    cursor: pointer;
+    font-weight: 600;
+    margin-top: 15px;
+}

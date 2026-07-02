@@ -157,6 +157,8 @@
         }
         .interruption-summary-item.host-color .count { color: #2A9D8F; }
         .interruption-summary-item.others-color .count { color: #E63946; }
+        #micList { padding: 10px 0; }
+        #micList p { color: #666; }
     </style>
 </head>
 <body>
@@ -165,9 +167,12 @@
 
         <!-- Microphone Selection -->
         <div class="mic-setup" id="micSetup">
-            <h3>🎤 Select Microphone</h3>
-            <div id="micList">Loading microphones...</div>
-            <button id="startMicsBtn" disabled>▶ Start Microphone</button>
+            <h3>🎤 Start Microphone</h3>
+            <div id="micList">
+                <p>Click "Start Microphone" to begin voice analysis.</p>
+                <p style="font-size: 12px; color: #666;">Your microphone will be used to analyze speaking patterns in real-time.</p>
+            </div>
+            <button id="startMicsBtn">▶ Start Microphone</button>
         </div>
 
         <!-- Speaker Setup -->
@@ -175,20 +180,20 @@
             <h3>👥 Enter Meeting Participants</h3>
             <p style="color: #666; font-size: 14px; margin-bottom: 15px;">
                 Enter the names of people in your meeting. The system will track:
-                <br>• <strong>Host</strong> (you) – speaking directly into microphone (loud)
+                <br>• <strong>You</strong> – speaking directly into microphone (loud)
                 <br>• <strong>Others</strong> – speaking from speakers (faint)
             </p>
             <div id="speakerList">
                 <div class="speaker-input-row">
-                    <input type="text" id="speaker1" placeholder="Speaker 1 name" value="Alex (Host)">
-                    <span style="font-size: 12px; color: #2A9D8F;">👤 Host</span>
+                    <input type="text" id="speaker1" placeholder="Your name" value="You">
+                    <span style="font-size: 12px; color: #2A9D8F;">👤 You</span>
                 </div>
                 <div class="speaker-input-row">
-                    <input type="text" id="speaker2" placeholder="Speaker 2 name" value="Jordan">
+                    <input type="text" id="speaker2" placeholder="Participant 2" value="Jordan">
                     <span style="font-size: 12px; color: #E9C46A;">🔊 Others</span>
                 </div>
                 <div class="speaker-input-row">
-                    <input type="text" id="speaker3" placeholder="Speaker 3 name" value="Taylor">
+                    <input type="text" id="speaker3" placeholder="Participant 3" value="Taylor">
                     <span style="font-size: 12px; color: #E9C46A;">🔊 Others</span>
                 </div>
             </div>
@@ -245,7 +250,7 @@
             <div class="speaker-stats-grid">
                 <div class="speaker-stat-card host">
                     <div class="stat-value" id="hostSpeakingTime">0</div>
-                    <div class="stat-label">👤 Host Speaking (sec)</div>
+                    <div class="stat-label">👤 You Speaking (sec)</div>
                 </div>
                 <div class="speaker-stat-card others">
                     <div class="stat-value" id="othersSpeakingTime">0</div>
@@ -290,7 +295,7 @@
 
     <script>
         // ============================================
-        // CONVERSATION CLIMATE - HOST FOCUSED
+        // CONVERSATION CLIMATE - SIMPLIFIED WORKING VERSION
         // ============================================
         
         const BACKEND_URL = 'http://localhost:3000';
@@ -320,13 +325,13 @@
         let othersInterruptedHost = 0;
         
         // Volume thresholds
-        const HOST_THRESHOLD = 25;      // Volume above 25% = Host
-        const OTHER_THRESHOLD = 8;      // Volume between 8-25% = Others
-        const SILENCE_THRESHOLD = 5;    // Volume below 5% = Silence
+        const HOST_THRESHOLD = 25;
+        const OTHER_THRESHOLD = 8;
+        const SILENCE_THRESHOLD = 5;
         
         // Speaker names
-        let participantNames = ['Alex (Host)', 'Jordan', 'Taylor'];
-        let hostName = 'Host';
+        let participantNames = ['You', 'Jordan', 'Taylor'];
+        let hostName = 'You';
         let otherNames = [];
         
         // DOM elements
@@ -361,60 +366,31 @@
         const liveLabel = document.getElementById('liveLabel');
         const interruptionLogList = document.getElementById('interruptionLogList');
 
-        // ========== MICROPHONE MANAGER ==========
-        let micManager = null;
+        // ========== MICROPHONE SETUP - SIMPLIFIED ==========
 
-        async function loadMicrophones() {
+        async function startMicrophoneDirectly() {
             try {
-                const { MicrophoneManager } = await import('./js/microphone-manager.js');
-                micManager = new MicrophoneManager();
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: { echoCancellation: true, noiseSuppression: true } 
+                });
+                window.multiMicStream = stream;
+                window.multiMicManager = { stopAll: function() { 
+                    stream.getTracks().forEach(t => t.stop()); 
+                } };
                 
-                const mics = await micManager.getAvailableMicrophones();
-                const micList = document.getElementById('micList');
-                
-                if (mics.length === 0) {
-                    micList.innerHTML = '<p>No microphones found. Please connect a microphone.</p>';
-                    return;
-                }
-                
-                micList.innerHTML = mics.map((mic, index) => `
-                    <div class="mic-item">
-                        <input type="checkbox" id="mic_${index}" value="${mic.deviceId}" checked>
-                        <label for="mic_${index}">${mic.label || `Microphone ${index + 1}`}</label>
-                    </div>
-                `).join('');
-                
-                document.getElementById('startMicsBtn').disabled = false;
-                
-            } catch (error) {
-                console.error('Error loading microphones:', error);
-                document.getElementById('micList').innerHTML = '<p>⚠️ Please allow microphone access and refresh.</p>';
-            }
-        }
-
-        async function startSelectedMicrophones() {
-            try {
-                const checkboxes = document.querySelectorAll('#micList input[type="checkbox"]:checked');
-                const deviceIds = Array.from(checkboxes).map(cb => cb.value);
-                
-                if (deviceIds.length === 0) {
-                    alert('Please select a microphone');
-                    return;
-                }
-                
-                await micManager.startMicrophones(deviceIds);
-                window.multiMicStream = micManager.getMixedStream();
-                window.multiMicManager = micManager;
-                
-                alert(`✅ Microphone started!`);
+                alert('✅ Microphone started successfully!');
                 micSetup.style.display = 'none';
                 speakerSetup.style.display = 'block';
                 
             } catch (error) {
                 console.error('Error starting microphone:', error);
-                alert('Error starting microphone: ' + error.message);
+                alert('Error: ' + error.message + '\nPlease allow microphone access and refresh.');
             }
         }
+
+        document.getElementById('startMicsBtn')?.addEventListener('click', startMicrophoneDirectly);
+
+        // ========== SPEAKER SETUP ==========
 
         document.getElementById('addSpeakerBtn')?.addEventListener('click', function() {
             const list = document.getElementById('speakerList');
@@ -439,18 +415,18 @@
             });
             
             if (names.length < 2) {
-                alert('Please add at least 2 participants (Host + Others)');
+                alert('Please add at least 2 participants');
                 return;
             }
             
-            hostName = names[0] || 'Host';
+            hostName = names[0] || 'You';
             otherNames = names.slice(1);
             participantNames = names;
             
             speakerSetup.style.display = 'none';
             authSection.style.display = 'block';
             
-            alert(`✅ Meeting started with:\n👤 Host: ${hostName}\n🔊 Others: ${otherNames.join(', ')}`);
+            alert(`✅ Meeting started with:\n👤 You: ${hostName}\n🔊 Others: ${otherNames.join(', ')}`);
         });
 
         // ========== PDF DOWNLOAD ==========
@@ -482,8 +458,8 @@
                 
                 doc.setFontSize(12);
                 doc.setTextColor(0, 0, 0);
-                doc.text(`Host Speaking Time: ${hostSpeakingSeconds} seconds`, 20, 73);
-                doc.text(`Others Speaking Time: ${othersSpeakingSeconds} seconds`, 20, 83);
+                doc.text(`You Speaking Time: ${Math.floor(hostSpeakingSeconds)} seconds`, 20, 73);
+                doc.text(`Others Speaking Time: ${Math.floor(othersSpeakingSeconds)} seconds`, 20, 83);
                 doc.text(`Total Interruptions: ${totalInterruptions}`, 20, 93);
                 doc.text(`  • You interrupted others: ${hostInterruptedOthers} times`, 20, 103);
                 doc.text(`  • Others interrupted you: ${othersInterruptedHost} times`, 20, 113);
@@ -611,7 +587,7 @@
                 const data = await response.json();
                 
                 if (response.ok) {
-                    alert(`✅ Report saved to Cloud!\n👤 Host: ${Math.floor(hostSpeakingSeconds)}s\n🔊 Others: ${Math.floor(othersSpeakingSeconds)}s\n🔔 Total Interruptions: ${totalInterruptions}\n  • You interrupted others: ${hostInterruptedOthers}\n  • Others interrupted you: ${othersInterruptedHost}`);
+                    alert(`✅ Report saved!\n👤 You: ${Math.floor(hostSpeakingSeconds)}s\n🔊 Others: ${Math.floor(othersSpeakingSeconds)}s\n🔔 Interruptions: ${totalInterruptions}`);
                 } else {
                     alert('Error: ' + (data.error || 'Failed to save'));
                 }
@@ -659,7 +635,7 @@
             if (placeholder) placeholder.remove();
         }
 
-        // ========== AUDIO WITH VOLUME-BASED SEPARATION ==========
+        // ========== AUDIO ==========
         function calculateVolume(dataArray) {
             let sum = 0;
             for (let i = 0; i < dataArray.length; i++) {
@@ -679,22 +655,19 @@
             const volume = calculateVolume(dataArray);
             const isCurrentlySpeaking = volume > SILENCE_THRESHOLD;
             
-            // VOLUME-BASED SPEAKER SEPARATION
             if (isCurrentlySpeaking) {
                 if (volume > HOST_THRESHOLD) {
-                    // HOST IS SPEAKING
                     if (currentSpeaker !== 'Host') {
                         currentSpeaker = 'Host';
-                        currentSpeakerSpan.innerText = '👤 Host';
+                        currentSpeakerSpan.innerText = '👤 You';
                         currentSpeakerSpan.style.color = '#2A9D8F';
-                        liveLabel.innerText = 'Host Speaking';
+                        liveLabel.innerText = 'You Speaking';
                     }
                     hostSpeakingSeconds += 0.1;
                     hostSpeakingTimeSpan.innerText = Math.floor(hostSpeakingSeconds);
-                    statusText.innerText = '👤 Host is speaking';
+                    statusText.innerText = '👤 You are speaking';
                     
                 } else if (volume > OTHER_THRESHOLD && volume <= HOST_THRESHOLD) {
-                    // OTHERS ARE SPEAKING
                     if (currentSpeaker !== 'Others') {
                         currentSpeaker = 'Others';
                         currentSpeakerSpan.innerText = '🔊 Others';
@@ -706,18 +679,15 @@
                     statusText.innerText = '🔊 Others are speaking';
                 }
                 
-                // INTERRUPTION DETECTION
                 if (isSpeaking) {
                     const volumeJump = volume - lastVolume;
                     if (volumeJump > 15 && volume > 20) {
                         if (volume > HOST_THRESHOLD) {
-                            // Host interrupted others
                             addInterruption('host_interrupted');
-                            console.log('🔔 Host interrupted someone');
+                            console.log('🔔 You interrupted someone');
                         } else {
-                            // Others interrupted host
                             addInterruption('others_interrupted');
-                            console.log('🔔 Someone interrupted host');
+                            console.log('🔔 Someone interrupted you');
                         }
                     }
                 }
@@ -726,7 +696,6 @@
                 isSpeaking = true;
                 
             } else {
-                // SILENCE
                 if (isSpeaking) {
                     isSpeaking = false;
                     liveDot.classList.remove('active');
@@ -741,7 +710,6 @@
             volumeValueSpan.innerText = volume;
             volumeFill.style.width = volume + '%';
             
-            // Color volume bar based on speaker
             if (volume > HOST_THRESHOLD) {
                 volumeFill.style.background = '#2A9D8F';
             } else if (volume > OTHER_THRESHOLD) {
@@ -788,7 +756,6 @@
                 othersInterruptedCountSpan.innerText = '0';
                 currentSpeakerSpan.innerText = '—';
                 
-                // Clear interruption log
                 interruptionLogList.innerHTML = `
                     <div style="color: #999; font-size: 14px; text-align: center; padding: 20px;">
                         No interruptions detected yet
@@ -797,7 +764,7 @@
                 
                 if (intervalId) clearInterval(intervalId);
                 intervalId = setInterval(() => {
-                    // Display is updated in processAudio loop
+                    // Display updated in processAudio loop
                 }, 100);
                 
                 processAudio();
@@ -834,11 +801,10 @@
             if (downloadPdfBtn) downloadPdfBtn.disabled = false;
             liveDot.classList.remove('active');
             liveLabel.innerText = 'Offline';
-            statusText.innerText = `Stopped. 👤 Host: ${Math.floor(hostSpeakingSeconds)}s, 🔊 Others: ${Math.floor(othersSpeakingSeconds)}s, 🔔 Interruptions: ${totalInterruptions}`;
+            statusText.innerText = `Stopped. 👤 You: ${Math.floor(hostSpeakingSeconds)}s, 🔊 Others: ${Math.floor(othersSpeakingSeconds)}s, 🔔 Interruptions: ${totalInterruptions}`;
         }
 
         // ========== EVENT LISTENERS ==========
-        document.getElementById('startMicsBtn')?.addEventListener('click', startSelectedMicrophones);
         switchAuth.addEventListener('click', switchMode);
         authSubmitBtn.addEventListener('click', handleAuth);
         logoutBtn.addEventListener('click', logout);
@@ -847,10 +813,7 @@
         saveReportBtn.addEventListener('click', saveReport);
         if (downloadPdfBtn) downloadPdfBtn.addEventListener('click', downloadPDF);
 
-        // ========== INIT ==========
-        loadMicrophones();
-
-        console.log('✅ Conversation Climate loaded with host-focused interruption detection');
+        console.log('✅ Conversation Climate loaded. Ready to go!');
         console.log('📊 Host threshold:', HOST_THRESHOLD, '%');
         console.log('📊 Others threshold:', OTHER_THRESHOLD, '%');
     </script>
