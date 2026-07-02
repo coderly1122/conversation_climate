@@ -1,15 +1,18 @@
+require('dotenv').config();
+const JWT_SECRET = process.env.JWT_SECRET || 'aB3xQ7vZ9mK2pL5nR8sT1uW4yC6fG0hJ';
+
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-require('dotenv').config();
 
 const app = express();
 
 // Config from environment variables
-const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/conversation_climate';
+// Add this right after const MONGODB_URI = ...
+console.log('🔍 MONGODB_URI being used:', MONGODB_URI);
 const PORT = process.env.PORT || 3000;
 
 // Middleware
@@ -64,7 +67,8 @@ app.post('/api/auth/signup', async (req, res) => {
         const user = new User({ name, email, password: hashedPassword });
         await user.save();
         
-        const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET);
+        // FIXED: Changed process.env.JWT_SECRET to JWT_SECRET
+        const token = jwt.sign({ userId: user._id }, JWT_SECRET);
         res.status(201).json({ message: 'User created', token, userId: user._id, name: user.name });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -86,7 +90,8 @@ app.post('/api/auth/login', async (req, res) => {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
         
-        const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET);
+        // FIXED: Changed process.env.JWT_SECRET to JWT_SECRET
+        const token = jwt.sign({ userId: user._id }, JWT_SECRET);
         res.json({ message: 'Login successful', token, userId: user._id, name: user.name });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -138,4 +143,31 @@ app.get('/api/meetings/history', async (req, res) => {
 // Start server
 app.listen(PORT, () => {
     console.log(`✅ Server running on http://localhost:${PORT}`);
+});
+mongoose.connection.once('open', () => {
+    console.log(`📊 Connected to database: ${mongoose.connection.db.databaseName}`);
+    console.log(`🔗 Host: ${mongoose.connection.host}`);
+});
+// ========== MULTI-SPEAKER DETECTION ==========
+app.post('/api/analyze-meeting', async (req, res) => {
+    try {
+        const { speakers, audioData } = req.body;
+        // Process audio with diarization
+        // Return speaker segments
+        // Return interruption detection
+        res.json({
+            speakers: speakers,
+            segments: [
+                { speaker: 'Alex', start: 0, end: 5 },
+                { speaker: 'Jordan', start: 6, end: 10 },
+                { speaker: 'Taylor', start: 11, end: 15 }
+            ],
+            interruptions: [
+                { interrupter: 'Jordan', interrupted: 'Alex', time: '00:05' },
+                { interrupter: 'Taylor', interrupted: 'Jordan', time: '00:12' }
+            ]
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
